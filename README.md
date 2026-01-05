@@ -4,8 +4,39 @@ Complete API reference for GFinder Backend.
 
 ## Base URL
 ```
-http://localhost:3000/api
+http://13.59.40.34/api
 ```
+
+## Root Endpoint (Health Check)
+
+### GET `/`
+Check if the server is running (no authentication required).
+
+**Request Headers:** None
+
+**Path Parameters:** None
+
+**Query Parameters:** None
+
+**Request Body:** None
+
+**Response (200 OK):**
+```json
+{
+  "status": "OK",
+  "message": "GFinder API is running",
+  "timestamp": "2024-01-15T10:30:00.000Z",
+  "uptime": 12345.67
+}
+```
+
+**Use Cases:**
+- Health check for load balancers
+- Server monitoring
+- Quick connectivity test
+- Uptime verification
+
+---
 
 ## Authentication
 
@@ -51,7 +82,7 @@ Content-Type: application/json
     "mobileNumber": "+1234567890",
     "country": "USA",
     "city": "New York",
-    "profileImage": "/uploads/images/profile.jpg",
+    "profileImage": "https://bucket-name.s3.region.amazonaws.com/images/profile.jpg",
     "rememberMe": true,
     "language": "ENGLISH",
     "customerProfile": { ... },
@@ -169,7 +200,7 @@ Content-Type: multipart/form-data
     "whatsappNumber": "+1234567890",
     "country": "USA",
     "city": "New York",
-    "profileImage": "/uploads/images/profile.jpg",
+    "profileImage": "https://bucket-name.s3.region.amazonaws.com/images/profile.jpg",
     "serviceProviderProfile": {
       "id": "uuid",
       "status": "PENDING",
@@ -309,7 +340,7 @@ Authorization: Bearer <your_jwt_token>
     "mobileNumber": "+1234567890",
     "country": "USA",
     "city": "New York",
-    "profileImage": "/uploads/images/profile.jpg",
+    "profileImage": "https://bucket-name.s3.region.amazonaws.com/images/profile.jpg",
     "rememberMe": false,
     "language": "ENGLISH",
     "latitude": 40.7128,
@@ -465,7 +496,7 @@ GET /api/customer/home?radius=5&search=cleaning&categoryId=cat-123
       {
         "id": "uuid",
         "title": "Cleaning",
-        "icon": "/uploads/images/icon.png",
+        "icon": "https://bucket-name.s3.region.amazonaws.com/images/icon.png",
         "services": [
           {
             "id": "uuid",
@@ -487,7 +518,7 @@ GET /api/customer/home?radius=5&search=cleaning&categoryId=cat-123
       {
         "id": "uuid",
         "description": "Professional cleaning services",
-        "portfolioImages": ["/uploads/images/img1.jpg"],
+        "portfolioImages": ["https://bucket-name.s3.region.amazonaws.com/images/img1.jpg"],
         "status": "ACTIVE",
         "user": {
           "id": "uuid",
@@ -497,7 +528,7 @@ GET /api/customer/home?radius=5&search=cleaning&categoryId=cat-123
           "whatsappNumber": "+1234567890",
           "country": "USA",
           "city": "New York",
-          "profileImage": "/uploads/images/profile.jpg",
+          "profileImage": "https://bucket-name.s3.region.amazonaws.com/images/profile.jpg",
           "latitude": 40.7128,
           "longitude": -74.0060
         },
@@ -589,7 +620,7 @@ Authorization: Bearer <token>
       "whatsappNumber": "+1234567890",
       "country": "USA",
       "city": "New York",
-      "profileImage": "/uploads/images/profile.jpg",
+      "profileImage": "https://bucket-name.s3.region.amazonaws.com/images/profile.jpg",
       "latitude": 40.7128,
       "longitude": -74.0060
     },
@@ -703,7 +734,7 @@ Authorization: Bearer <token>
         "id": "uuid",
         "status": "ACTIVE",
         "description": "Professional cleaning services",
-        "portfolioImages": ["/uploads/images/img1.jpg"],
+        "portfolioImages": ["https://bucket-name.s3.region.amazonaws.com/images/img1.jpg"],
         "user": {
           "id": "uuid",
           "name": "Clean Pro",
@@ -712,7 +743,7 @@ Authorization: Bearer <token>
           "whatsappNumber": "+1234567890",
           "country": "USA",
           "city": "New York",
-          "profileImage": "/uploads/images/profile.jpg",
+          "profileImage": "https://bucket-name.s3.region.amazonaws.com/images/profile.jpg",
           "latitude": 40.7128,
           "longitude": -74.0060
         },
@@ -855,7 +886,7 @@ Content-Type: multipart/form-data
     "mobileNumber": "+1234567890",
     "country": "USA",
     "city": "New York",
-    "profileImage": "/uploads/images/profile.jpg",
+    "profileImage": "https://bucket-name.s3.region.amazonaws.com/images/profile.jpg",
     "customerProfile": { ... },
     "createdAt": "2024-01-01T00:00:00.000Z",
     "updatedAt": "2024-01-01T00:00:00.000Z"
@@ -884,7 +915,7 @@ Authorization: Bearer <token>
   "success": true,
   "data": {
     "id": "uuid",
-    "pdfUrl": "/uploads/pdfs/policy.pdf",
+    "pdfUrl": "https://bucket-name.s3.region.amazonaws.com/pdfs/policy.pdf",
     "version": 1,
     "createdAt": "2024-01-01T00:00:00.000Z",
     "updatedAt": "2024-01-01T00:00:00.000Z"
@@ -1516,7 +1547,7 @@ Authorization: Bearer <token>
     {
       "id": "uuid",
       "title": "Cleaning",
-      "icon": "/uploads/images/icon.png",
+      "icon": "https://bucket-name.s3.region.amazonaws.com/images/icon.png",
       "services": [
         {
           "id": "uuid",
@@ -1569,7 +1600,7 @@ Content-Type: multipart/form-data
   "data": {
     "id": "uuid",
     "title": "Cleaning",
-    "icon": "/uploads/images/icon.png",
+    "icon": "https://bucket-name.s3.region.amazonaws.com/images/icon.png",
     "createdAt": "2024-01-01T00:00:00.000Z"
   }
 }
@@ -1958,7 +1989,7 @@ Get privacy policy PDF information.
   "success": true,
   "data": {
     "id": "uuid",
-    "pdfUrl": "/uploads/pdfs/policy.pdf",
+    "pdfUrl": "https://bucket-name.s3.region.amazonaws.com/pdfs/policy.pdf",
     "version": 1,
     "createdAt": "2024-01-01T00:00:00.000Z",
     "updatedAt": "2024-01-01T00:00:00.000Z"
@@ -2109,7 +2140,7 @@ Content-Type: multipart/form-data
     "mobileNumber": "+1234567890",
     "country": "USA",
     "city": "New York",
-    "profileImage": "/uploads/images/profile.jpg",
+    "profileImage": "https://bucket-name.s3.region.amazonaws.com/images/profile.jpg",
     "updatedAt": "2024-01-01T00:00:00.000Z"
   }
 }
@@ -2134,9 +2165,13 @@ Health check endpoint (no authentication required).
 ```json
 {
   "status": "OK",
-  "message": "GFinder API is running"
+  "message": "GFinder API is running",
+  "timestamp": "2024-01-15T10:30:00.000Z",
+  "uptime": 12345.67
 }
 ```
+
+**Note:** This endpoint provides the same information as the root endpoint (`GET /`). Both can be used for health checks.
 
 ---
 
@@ -2149,7 +2184,7 @@ Get privacy policy PDF information (public, no authentication required).
   "success": true,
   "data": {
     "id": "uuid",
-    "pdfUrl": "/uploads/pdfs/policy.pdf",
+    "pdfUrl": "https://bucket-name.s3.region.amazonaws.com/pdfs/policy.pdf",
     "version": 1,
     "createdAt": "2024-01-01T00:00:00.000Z",
     "updatedAt": "2024-01-01T00:00:00.000Z"
@@ -2198,7 +2233,7 @@ Get all categories with services and sub-services (public, no authentication req
     {
       "id": "uuid",
       "title": "Cleaning",
-      "icon": "/uploads/images/icon.png",
+      "icon": "https://bucket-name.s3.region.amazonaws.com/images/icon.png",
       "services": [
         {
           "id": "uuid",
@@ -2287,12 +2322,18 @@ All file uploads use `multipart/form-data` content type:
 - Service/Category icons: `icon` field (single file)
 - PDF files: `pdf` field (single file)
 
-### File URLs
-Uploaded files are accessible at:
+### File Storage
+All files are stored in **AWS S3** and URLs are returned in responses. File URLs follow this format:
 ```
-http://localhost:3000/uploads/images/filename.jpg
-http://localhost:3000/uploads/pdfs/filename.pdf
+https://bucket-name.s3.region.amazonaws.com/images/filename.jpg
+https://bucket-name.s3.region.amazonaws.com/pdfs/filename.pdf
 ```
+
+**Important Notes:**
+- Files are uploaded directly to S3, not stored locally
+- URLs are full S3 URLs (not relative paths)
+- Files are publicly accessible via the returned S3 URL
+- Ensure your S3 bucket has proper CORS and public read access configured
 
 ---
 
@@ -2388,7 +2429,7 @@ Customers and service providers must update their location for:
 ```javascript
 // Login
 const login = async (email, password) => {
-  const response = await fetch('http://localhost:3000/api/auth/login', {
+  const response = await fetch('http://13.59.40.34/api/auth/login', {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({ email, password })
@@ -2410,7 +2451,7 @@ const getHomeScreen = async (radius = 1, search = '') => {
   });
   
   const response = await fetch(
-    `http://localhost:3000/api/customer/home?${queryParams}`,
+    `http://13.59.40.34/api/customer/home?${queryParams}`,
     {
       headers: { 'Authorization': `Bearer ${token}` }
     }
@@ -2425,7 +2466,7 @@ const updateProfile = async (imageFile, name) => {
   if (imageFile) formData.append('profileImage', imageFile);
   if (name) formData.append('name', name);
   
-  const response = await fetch('http://localhost:3000/api/customer/profile', {
+  const response = await fetch('http://13.59.40.34/api/customer/profile', {
     method: 'PUT',
     headers: { 'Authorization': `Bearer ${token}` },
     body: formData
@@ -2437,7 +2478,7 @@ const updateProfile = async (imageFile, name) => {
 const addReview = async (serviceProviderId, rating, comment) => {
   const token = localStorage.getItem('token');
   const response = await fetch(
-    `http://localhost:3000/api/customer/review/${serviceProviderId}`,
+    `http://13.59.40.34/api/customer/review/${serviceProviderId}`,
     {
       method: 'POST',
       headers: {
@@ -2454,26 +2495,26 @@ const addReview = async (serviceProviderId, rating, comment) => {
 ### cURL Examples
 ```bash
 # Login
-curl -X POST http://localhost:3000/api/auth/login \
+curl -X POST http://13.59.40.34/api/auth/login \
   -H "Content-Type: application/json" \
   -d '{"email":"admin@gfinder.com","password":"Admin@123"}'
 
 # Get Home Screen (with token)
-curl http://localhost:3000/api/customer/home?radius=5 \
+curl http://13.59.40.34/api/customer/home?radius=5 \
   -H "Authorization: Bearer YOUR_TOKEN"
 
 # Update Profile with Image
-curl -X PUT http://localhost:3000/api/customer/profile \
+curl -X PUT http://13.59.40.34/api/customer/profile \
   -H "Authorization: Bearer YOUR_TOKEN" \
   -F "profileImage=@/path/to/image.jpg" \
   -F "name=John Doe"
 
 # Add Favorite
-curl -X POST http://localhost:3000/api/customer/favorite/SERVICE_PROVIDER_ID \
+curl -X POST http://13.59.40.34/api/customer/favorite/SERVICE_PROVIDER_ID \
   -H "Authorization: Bearer YOUR_TOKEN"
 
 # Add Review
-curl -X POST http://localhost:3000/api/customer/review/SERVICE_PROVIDER_ID \
+curl -X POST http://13.59.40.34/api/customer/review/SERVICE_PROVIDER_ID \
   -H "Authorization: Bearer YOUR_TOKEN" \
   -H "Content-Type: application/json" \
   -d '{"rating":5,"comment":"Great service!"}'
@@ -2499,7 +2540,7 @@ Currently, rate limiting is not implemented. Consider implementing in production
 5. **Portfolio Images**: Maximum 5 images per service provider (oldest removed if exceeded)
 6. **Location**: Required for filtering and distance calculations (update via location endpoint)
 7. **OTP Expiry**: OTP codes expire after 10 minutes
-8. **File Storage**: Files are stored locally in `uploads/` directory (consider cloud storage for production)
+8. **File Storage**: All files are stored in AWS S3. URLs returned are full S3 URLs
 9. **Email**: OTP emails are sent but failures don't block the request (check logs for email errors)
 10. **JSON Fields**: Some endpoints accept JSON strings or arrays for fields like `serviceIds`, `availability` (for form data compatibility)
 
