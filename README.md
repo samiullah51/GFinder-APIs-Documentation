@@ -3,6 +3,7 @@
 Complete API reference for GFinder Backend.
 
 ## Base URL
+
 ```
 http://13.59.40.34/api
 ```
@@ -10,6 +11,7 @@ http://13.59.40.34/api
 ## Root Endpoint (Health Check)
 
 ### GET `/`
+
 Check if the server is running (no authentication required).
 
 **Request Headers:** None
@@ -21,6 +23,7 @@ Check if the server is running (no authentication required).
 **Request Body:** None
 
 **Response (200 OK):**
+
 ```json
 {
   "status": "OK",
@@ -31,6 +34,7 @@ Check if the server is running (no authentication required).
 ```
 
 **Use Cases:**
+
 - Health check for load balancers
 - Server monitoring
 - Quick connectivity test
@@ -41,6 +45,7 @@ Check if the server is running (no authentication required).
 ## Authentication
 
 Most endpoints require authentication via JWT token. Include the token in the Authorization header:
+
 ```
 Authorization: Bearer <your_jwt_token>
 ```
@@ -50,25 +55,29 @@ Authorization: Bearer <your_jwt_token>
 ## 🔐 Authentication APIs (`/api/auth`)
 
 ### POST `/api/auth/login`
+
 Login with email and password.
 
 **Authentication:** Not required (public endpoint)
 
 **Request Headers:**
+
 ```
 Content-Type: application/json
 ```
 
 **Request Body (Required):**
+
 ```json
 {
-  "email": "user@example.com",        // Required: string, valid email format
-  "password": "password123",           // Required: string
-  "rememberMe": true                   // Optional: boolean, defaults to false
+  "email": "user@example.com", // Required: string, valid email format
+  "password": "password123", // Required: string
+  "rememberMe": true // Optional: boolean, defaults to false
 }
 ```
 
 **Response (200 OK):**
+
 ```json
 {
   "success": true,
@@ -94,33 +103,40 @@ Content-Type: application/json
 ```
 
 **Error Responses:**
+
 - `400 Bad Request`: Missing email or password
 - `401 Unauthorized`: Invalid email or password
 
 ---
 
 ### POST `/api/auth/customer/signup`
+
 Register a new customer account.
 
 **Authentication:** Not required (public endpoint)
 
 **Request Headers:**
+
 ```
 Content-Type: application/json
 ```
 
 **Request Body:**
+
 ```json
 {
-  "name": "John Doe",                  // Required: string
-  "email": "customer@example.com",     // Required: string, valid email format, must be unique
-  "mobileNumber": "+1234567890",       // Optional: string
-  "country": "USA",                    // Optional: string
-  "city": "New York"                   // Optional: string
+  "name": "John Doe", // Required: string
+  "email": "customer@example.com", // Required: string, valid email format, must be unique
+  "password": "password123", // Required: string, minimum 6 characters
+  "mobileNumber": "+1234567890", // Optional: string
+  "country": "USA", // Optional: string
+  "city": "New York", // Optional: string
+  "address": "123 Main Street, Apt 4B" // Optional: string
 }
 ```
 
 **Response (201 Created):**
+
 ```json
 {
   "success": true,
@@ -134,6 +150,7 @@ Content-Type: application/json
     "mobileNumber": "+1234567890",
     "country": "USA",
     "city": "New York",
+    "address": "123 Main Street, Apt 4B",
     "customerProfile": {
       "id": "uuid",
       "userId": "uuid"
@@ -144,16 +161,19 @@ Content-Type: application/json
 ```
 
 **Error Responses:**
-- `400 Bad Request`: Missing required fields (name, email) or email already exists
+
+- `400 Bad Request`: Missing required fields (name, email, password), password too short (minimum 6 characters), or email already exists
 
 ---
 
 ### POST `/api/auth/service-provider/signup`
+
 Register a new service provider account (status: PENDING, requires admin approval).
 
 **Authentication:** Not required (public endpoint)
 
 **Request Headers:**
+
 ```
 Content-Type: multipart/form-data
 ```
@@ -164,28 +184,32 @@ Content-Type: multipart/form-data
 | `profileImage` | File | No | Profile image (JPEG, PNG, GIF, WebP) |
 | `name` | String | **Yes** | Service provider name |
 | `email` | String | **Yes** | Email address (must be unique) |
+| `password` | String | **Yes** | Password (minimum 6 characters) |
 | `mobileNumber` | String | No | Mobile phone number |
 | `whatsappNumber` | String | No | WhatsApp number with country code |
 | `country` | String | No | Country name |
 | `city` | String | No | City name |
+| `address` | String | No | Full address |
 | `description` | String | No | Service description |
 | `serviceIds` | JSON String/Array | No | Array of service IDs: `["uuid1", "uuid2"]` |
 | `subServiceIds` | JSON String/Array | No | Array of sub-service IDs: `["uuid1", "uuid2"]` |
 | `availability` | JSON String/Array | No | Availability array (see format below) |
 
 **Availability Array Format:**
+
 ```json
 [
   {
-    "dayOfWeek": 1,           // Required: integer (0=Sunday, 1=Monday, ..., 6=Saturday)
-    "startTime": "09:00",     // Required: string, format "HH:MM"
-    "endTime": "17:00",       // Required: string, format "HH:MM"
-    "isAvailable": true       // Optional: boolean, defaults to true
+    "dayOfWeek": 1, // Required: integer (0=Sunday, 1=Monday, ..., 6=Saturday)
+    "startTime": "09:00", // Required: string, format "HH:MM"
+    "endTime": "17:00", // Required: string, format "HH:MM"
+    "isAvailable": true // Optional: boolean, defaults to true
   }
 ]
 ```
 
 **Response (201 Created):**
+
 ```json
 {
   "success": true,
@@ -200,6 +224,7 @@ Content-Type: multipart/form-data
     "whatsappNumber": "+1234567890",
     "country": "USA",
     "city": "New York",
+    "address": "456 Business Ave, Suite 100",
     "profileImage": "https://bucket-name.s3.region.amazonaws.com/images/profile.jpg",
     "serviceProviderProfile": {
       "id": "uuid",
@@ -215,59 +240,70 @@ Content-Type: multipart/form-data
 ```
 
 **Error Responses:**
-- `400 Bad Request`: Missing required fields (name, email), email already exists, or invalid JSON format
+
+- `400 Bad Request`: Missing required fields (name, email, password), password too short (minimum 6 characters), email already exists, or invalid JSON format
 
 ---
 
 ### POST `/api/auth/forgot-password`
+
 Request password reset OTP (sent via email). Unlimited OTP resends allowed.
 
 **Authentication:** Not required (public endpoint)
 
 **Request Headers:**
+
 ```
 Content-Type: application/json
 ```
 
 **Request Body:**
+
 ```json
 {
-  "email": "user@example.com"  // Required: string, valid email format
+  "email": "user@example.com" // Required: string, valid email format
 }
 ```
 
 **Response (200 OK):**
+
 ```json
 {
   "success": true,
   "message": "If the email exists, an OTP has been sent"
 }
 ```
-*Note: Response message is generic for security (doesn't reveal if email exists)*
+
+_Note: Response message is generic for security (doesn't reveal if email exists)_
 
 **Error Responses:**
+
 - `400 Bad Request`: Missing email
 
 ---
 
 ### POST `/api/auth/resend-otp`
+
 Resend password reset OTP. Unlimited resends allowed.
 
 **Authentication:** Not required (public endpoint)
 
 **Request Headers:**
+
 ```
 Content-Type: application/json
 ```
 
 **Request Body:**
+
 ```json
 {
-  "email": "user@example.com"  // Required: string, valid email format
+  "email": "user@example.com" // Required: string, valid email format
 }
 ```
 
 **Response (200 OK):**
+
 ```json
 {
   "success": true,
@@ -276,31 +312,36 @@ Content-Type: application/json
 ```
 
 **Error Responses:**
+
 - `400 Bad Request`: Missing email
 
 ---
 
 ### POST `/api/auth/reset-password`
+
 Reset password using OTP code.
 
 **Authentication:** Not required (public endpoint)
 
 **Request Headers:**
+
 ```
 Content-Type: application/json
 ```
 
 **Request Body:**
+
 ```json
 {
-  "email": "user@example.com",        // Required: string, valid email format
-  "otp": "123456",                    // Required: string, 6-digit OTP code
-  "newPassword": "newPassword123",    // Required: string
+  "email": "user@example.com", // Required: string, valid email format
+  "otp": "123456", // Required: string, 6-digit OTP code
+  "newPassword": "newPassword123", // Required: string
   "confirmPassword": "newPassword123" // Required: string, must match newPassword
 }
 ```
 
 **Response (200 OK):**
+
 ```json
 {
   "success": true,
@@ -309,17 +350,20 @@ Content-Type: application/json
 ```
 
 **Error Responses:**
+
 - `400 Bad Request`: Missing fields, passwords don't match, or invalid/expired OTP
 - `404 Not Found`: User not found
 
 ---
 
 ### GET `/api/auth/me`
+
 Get current authenticated user details.
 
 **Authentication:** Required (Bearer token)
 
 **Request Headers:**
+
 ```
 Authorization: Bearer <your_jwt_token>
 ```
@@ -329,6 +373,7 @@ Authorization: Bearer <your_jwt_token>
 **Query Parameters:** None
 
 **Response (200 OK):**
+
 ```json
 {
   "success": true,
@@ -344,7 +389,7 @@ Authorization: Bearer <your_jwt_token>
     "rememberMe": false,
     "language": "ENGLISH",
     "latitude": 40.7128,
-    "longitude": -74.0060,
+    "longitude": -74.006,
     "customerProfile": {
       "id": "uuid",
       "userId": "uuid"
@@ -357,16 +402,19 @@ Authorization: Bearer <your_jwt_token>
 ```
 
 **Error Responses:**
+
 - `401 Unauthorized`: Missing or invalid token, user not found
 
 ---
 
 ### POST `/api/auth/logout`
+
 Logout (client should remove token from storage).
 
 **Authentication:** Required (Bearer token)
 
 **Request Headers:**
+
 ```
 Authorization: Bearer <your_jwt_token>
 ```
@@ -378,6 +426,7 @@ Authorization: Bearer <your_jwt_token>
 **Request Body:** None
 
 **Response (200 OK):**
+
 ```json
 {
   "success": true,
@@ -393,61 +442,70 @@ Authorization: Bearer <your_jwt_token>
 **Base Path:** `/api/customer`
 
 ### PUT `/api/customer/location`
+
 Update customer location (required for filtering service providers by radius).
 
 **Authentication:** Required (Customer)
 
 **Request Headers:**
+
 ```
 Authorization: Bearer <token>
 Content-Type: application/json
 ```
 
 **Request Body:**
+
 ```json
 {
-  "latitude": 40.7128,   // Required: number, valid latitude (-90 to 90)
-  "longitude": -74.0060  // Required: number, valid longitude (-180 to 180)
+  "latitude": 40.7128, // Required: number, valid latitude (-90 to 90)
+  "longitude": -74.006 // Required: number, valid longitude (-180 to 180)
 }
 ```
 
 **Response (200 OK):**
+
 ```json
 {
   "success": true,
   "message": "Location updated successfully",
   "user": {
     "latitude": 40.7128,
-    "longitude": -74.0060
+    "longitude": -74.006
   }
 }
 ```
 
 **Error Responses:**
+
 - `400 Bad Request`: Missing latitude or longitude
 - `401 Unauthorized`: Invalid or missing token
 
 ---
 
 ### PUT `/api/customer/language`
+
 Update customer language preference.
 
 **Authentication:** Required (Customer)
 
 **Request Headers:**
+
 ```
 Authorization: Bearer <token>
 Content-Type: application/json
 ```
 
 **Request Body:**
+
 ```json
 {
-  "language": "ENGLISH"  // Required: string, must be "ENGLISH" or "URDU"
+  "language": "ENGLISH" // Required: string, must be "ENGLISH" or "URDU"
 }
 ```
 
 **Response (200 OK):**
+
 ```json
 {
   "success": true,
@@ -456,16 +514,19 @@ Content-Type: application/json
 ```
 
 **Error Responses:**
+
 - `400 Bad Request`: Invalid language value (must be "ENGLISH" or "URDU")
 
 ---
 
 ### GET `/api/customer/home`
+
 Get home screen data (categories and service providers with location-based filtering).
 
 **Authentication:** Required (Customer)
 
 **Request Headers:**
+
 ```
 Authorization: Bearer <token>
 ```
@@ -483,11 +544,13 @@ Authorization: Bearer <token>
 **Request Body:** None
 
 **Example Request:**
+
 ```
 GET /api/customer/home?radius=5&search=cleaning&categoryId=cat-123
 ```
 
 **Response (200 OK):**
+
 ```json
 {
   "success": true,
@@ -579,17 +642,20 @@ GET /api/customer/home?radius=5&search=cleaning&categoryId=cat-123
 ```
 
 **Error Responses:**
+
 - `400 Bad Request`: User location not set (if radius filter requested)
 - `401 Unauthorized`: Invalid or missing token
 
 ---
 
 ### GET `/api/customer/service-provider/:id`
+
 Get detailed service provider information with distance calculation.
 
 **Authentication:** Required (Customer)
 
 **Request Headers:**
+
 ```
 Authorization: Bearer <token>
 ```
@@ -604,6 +670,7 @@ Authorization: Bearer <token>
 **Request Body:** None
 
 **Response (200 OK):**
+
 ```json
 {
   "success": true,
@@ -634,17 +701,20 @@ Authorization: Bearer <token>
 ```
 
 **Error Responses:**
+
 - `404 Not Found`: Service provider not found
 - `401 Unauthorized`: Invalid or missing token
 
 ---
 
 ### POST `/api/customer/favorite/:serviceProviderId`
+
 Add service provider to favorites (if not already favorited).
 
 **Authentication:** Required (Customer)
 
 **Request Headers:**
+
 ```
 Authorization: Bearer <token>
 ```
@@ -659,6 +729,7 @@ Authorization: Bearer <token>
 **Request Body:** None
 
 **Response (200 OK):**
+
 ```json
 {
   "success": true,
@@ -668,16 +739,19 @@ Authorization: Bearer <token>
 ```
 
 **Error Responses:**
+
 - `404 Not Found`: Service provider not found
 
 ---
 
 ### DELETE `/api/customer/favorite/:serviceProviderId`
+
 Remove service provider from favorites.
 
 **Authentication:** Required (Customer)
 
 **Request Headers:**
+
 ```
 Authorization: Bearer <token>
 ```
@@ -692,6 +766,7 @@ Authorization: Bearer <token>
 **Request Body:** None
 
 **Response (200 OK):**
+
 ```json
 {
   "success": true,
@@ -703,11 +778,13 @@ Authorization: Bearer <token>
 ---
 
 ### GET `/api/customer/favorites`
+
 Get all favorited service providers.
 
 **Authentication:** Required (Customer)
 
 **Request Headers:**
+
 ```
 Authorization: Bearer <token>
 ```
@@ -722,6 +799,7 @@ Authorization: Bearer <token>
 **Request Body:** None
 
 **Response (200 OK):**
+
 ```json
 {
   "success": true,
@@ -761,11 +839,13 @@ Authorization: Bearer <token>
 ---
 
 ### POST `/api/customer/review/:serviceProviderId`
+
 Add or update a review for a service provider (one review per user per provider).
 
 **Authentication:** Required (Customer)
 
 **Request Headers:**
+
 ```
 Authorization: Bearer <token>
 Content-Type: application/json
@@ -779,18 +859,20 @@ Content-Type: application/json
 **Query Parameters:** None
 
 **Request Body:**
+
 ```json
 {
-  "rating": 5,              // Required: integer, must be between 1 and 5
-  "comment": "Great service!"  // Optional: string
+  "rating": 5, // Required: integer, must be between 1 and 5
+  "comment": "Great service!" // Optional: string
 }
 ```
 
 **Response (201 Created or 200 OK):**
+
 ```json
 {
   "success": true,
-  "message": "Review added successfully",  // or "Review updated"
+  "message": "Review added successfully", // or "Review updated"
   "data": {
     "id": "uuid",
     "userId": "uuid",
@@ -809,17 +891,20 @@ Content-Type: application/json
 ```
 
 **Error Responses:**
+
 - `400 Bad Request`: Invalid rating (must be 1-5)
 - `404 Not Found`: Service provider not found
 
 ---
 
 ### POST `/api/customer/report/:serviceProviderId`
+
 Report a service provider (changes provider status to REPORTED).
 
 **Authentication:** Required (Customer)
 
 **Request Headers:**
+
 ```
 Authorization: Bearer <token>
 Content-Type: application/json
@@ -833,13 +918,15 @@ Content-Type: application/json
 **Query Parameters:** None
 
 **Request Body:**
+
 ```json
 {
-  "reason": "Inappropriate behavior"  // Optional: string
+  "reason": "Inappropriate behavior" // Optional: string
 }
 ```
 
 **Response (201 Created):**
+
 ```json
 {
   "success": true,
@@ -850,11 +937,13 @@ Content-Type: application/json
 ---
 
 ### PUT `/api/customer/profile`
+
 Update customer profile information.
 
 **Authentication:** Required (Customer)
 
 **Request Headers:**
+
 ```
 Authorization: Bearer <token>
 Content-Type: multipart/form-data
@@ -875,6 +964,7 @@ Content-Type: multipart/form-data
 | `city` | String | No | City name |
 
 **Response (200 OK):**
+
 ```json
 {
   "success": true,
@@ -895,21 +985,25 @@ Content-Type: multipart/form-data
 ```
 
 **Error Responses:**
+
 - `400 Bad Request`: Email already exists (if email is being changed)
 
 ---
 
 ### GET `/api/customer/privacy-policy`
+
 Get privacy policy PDF information.
 
 **Authentication:** Required (Customer)
 
 **Request Headers:**
+
 ```
 Authorization: Bearer <token>
 ```
 
 **Response (200 OK):**
+
 ```json
 {
   "success": true,
@@ -924,21 +1018,25 @@ Authorization: Bearer <token>
 ```
 
 **Error Responses:**
+
 - `404 Not Found`: Privacy policy not found
 
 ---
 
 ### GET `/api/customer/help-center`
+
 Get help center contact information.
 
 **Authentication:** Required (Customer)
 
 **Request Headers:**
+
 ```
 Authorization: Bearer <token>
 ```
 
 **Response (200 OK):**
+
 ```json
 {
   "success": true,
@@ -958,11 +1056,13 @@ Authorization: Bearer <token>
 **Base Path:** `/api/service-provider`
 
 ### GET `/api/service-provider/home`
+
 Get marketplace view (same as customer home screen).
 
 **Authentication:** Required (Service Provider)
 
 **Request Headers:**
+
 ```
 Authorization: Bearer <token>
 ```
@@ -970,6 +1070,7 @@ Authorization: Bearer <token>
 **Path Parameters:** None
 
 **Query Parameters:** Same as `/api/customer/home`
+
 - `categoryId` (String, optional)
 - `subServiceId` (String, optional)
 - `radius` (Number, optional, default: 1)
@@ -982,32 +1083,36 @@ Authorization: Bearer <token>
 ---
 
 ### PUT `/api/service-provider/location`
+
 Update service provider location.
 
 **Authentication:** Required (Service Provider)
 
 **Request Headers:**
+
 ```
 Authorization: Bearer <token>
 Content-Type: application/json
 ```
 
 **Request Body:**
+
 ```json
 {
-  "latitude": 40.7128,   // Required: number, valid latitude
-  "longitude": -74.0060  // Required: number, valid longitude
+  "latitude": 40.7128, // Required: number, valid latitude
+  "longitude": -74.006 // Required: number, valid longitude
 }
 ```
 
 **Response (200 OK):**
+
 ```json
 {
   "success": true,
   "message": "Location updated successfully",
   "user": {
     "latitude": 40.7128,
-    "longitude": -74.0060
+    "longitude": -74.006
   }
 }
 ```
@@ -1015,11 +1120,13 @@ Content-Type: application/json
 ---
 
 ### GET `/api/service-provider/portfolio`
+
 Get service provider's own portfolio details.
 
 **Authentication:** Required (Service Provider)
 
 **Request Headers:**
+
 ```
 Authorization: Bearer <token>
 ```
@@ -1034,6 +1141,7 @@ Authorization: Bearer <token>
 **Request Body:** None
 
 **Response (200 OK):**
+
 ```json
 {
   "success": true,
@@ -1063,16 +1171,19 @@ Authorization: Bearer <token>
 ```
 
 **Error Responses:**
+
 - `404 Not Found`: Service provider profile not found
 
 ---
 
 ### PUT `/api/service-provider/portfolio/images`
+
 Update portfolio images (maximum 5 images total).
 
 **Authentication:** Required (Service Provider)
 
 **Request Headers:**
+
 ```
 Authorization: Bearer <token>
 Content-Type: multipart/form-data
@@ -1088,6 +1199,7 @@ Content-Type: multipart/form-data
 | `portfolioImages` | Files | No | Image files (JPEG, PNG, GIF, WebP, max 5 total, max 10MB each) |
 
 **Response (200 OK):**
+
 ```json
 {
   "success": true,
@@ -1104,16 +1216,19 @@ Content-Type: multipart/form-data
 ```
 
 **Error Responses:**
+
 - `400 Bad Request`: More than 5 images attempted
 
 ---
 
 ### PUT `/api/service-provider/profile`
+
 Update service provider profile.
 
 **Authentication:** Required (Service Provider)
 
 **Request Headers:**
+
 ```
 Authorization: Bearer <token>
 Content-Type: multipart/form-data
@@ -1136,6 +1251,7 @@ Content-Type: multipart/form-data
 | `description` | String | No | Service description |
 
 **Response (200 OK):**
+
 ```json
 {
   "success": true,
@@ -1152,16 +1268,19 @@ Content-Type: multipart/form-data
 ```
 
 **Error Responses:**
+
 - `400 Bad Request`: Email already exists (if email is being changed)
 
 ---
 
 ### PUT `/api/service-provider/availability`
+
 Update availability timing for each day of the week.
 
 **Authentication:** Required (Service Provider)
 
 **Request Headers:**
+
 ```
 Authorization: Bearer <token>
 Content-Type: application/json
@@ -1172,14 +1291,16 @@ Content-Type: application/json
 **Query Parameters:** None
 
 **Request Body:**
+
 ```json
 {
-  "availability": [  // Required: array of availability objects
+  "availability": [
+    // Required: array of availability objects
     {
-      "dayOfWeek": 1,           // Required: integer (0=Sunday, 1=Monday, ..., 6=Saturday)
-      "startTime": "09:00",     // Required: string, format "HH:MM" (24-hour)
-      "endTime": "17:00",       // Required: string, format "HH:MM" (24-hour)
-      "isAvailable": true       // Optional: boolean, defaults to true
+      "dayOfWeek": 1, // Required: integer (0=Sunday, 1=Monday, ..., 6=Saturday)
+      "startTime": "09:00", // Required: string, format "HH:MM" (24-hour)
+      "endTime": "17:00", // Required: string, format "HH:MM" (24-hour)
+      "isAvailable": true // Optional: boolean, defaults to true
     },
     {
       "dayOfWeek": 2,
@@ -1193,6 +1314,7 @@ Content-Type: application/json
 ```
 
 **Response (200 OK):**
+
 ```json
 {
   "success": true,
@@ -1213,11 +1335,13 @@ Content-Type: application/json
 ```
 
 **Error Responses:**
+
 - `400 Bad Request`: Invalid array format or missing required fields
 
 ---
 
 ### GET `/api/service-provider/privacy-policy`
+
 Get privacy policy PDF information.
 
 **Authentication:** Required (Service Provider)
@@ -1227,6 +1351,7 @@ Get privacy policy PDF information.
 ---
 
 ### GET `/api/service-provider/help-center`
+
 Get help center contact information.
 
 **Authentication:** Required (Service Provider)
@@ -1241,11 +1366,13 @@ Get help center contact information.
 **Base Path:** `/api/admin`
 
 ### GET `/api/admin/dashboard`
+
 Get dashboard statistics and analytics.
 
 **Authentication:** Required (Admin)
 
 **Request Headers:**
+
 ```
 Authorization: Bearer <token>
 ```
@@ -1257,15 +1384,17 @@ Authorization: Bearer <token>
 **Request Body:** None
 
 **Response (200 OK):**
+
 ```json
 {
   "success": true,
   "data": {
-    "activeCount": 150,        // Number of active service providers
-    "pendingCount": 25,        // Number of pending approvals
-    "reportedCount": 5,        // Number of reported providers
-    "inactiveCount": 10,       // Number of inactive/blocked providers
-    "countryDistribution": {   // Count of active providers by country
+    "activeCount": 150, // Number of active service providers
+    "pendingCount": 25, // Number of pending approvals
+    "reportedCount": 5, // Number of reported providers
+    "inactiveCount": 10, // Number of inactive/blocked providers
+    "countryDistribution": {
+      // Count of active providers by country
       "Pakistan": 80,
       "USA": 50,
       "India": 20,
@@ -1278,11 +1407,13 @@ Authorization: Bearer <token>
 ---
 
 ### GET `/api/admin/service-providers`
+
 Get all service providers with optional filters.
 
 **Authentication:** Required (Admin)
 
 **Request Headers:**
+
 ```
 Authorization: Bearer <token>
 ```
@@ -1301,6 +1432,7 @@ Authorization: Bearer <token>
 **Request Body:** None
 
 **Response (200 OK):**
+
 ```json
 {
   "success": true,
@@ -1325,11 +1457,13 @@ Authorization: Bearer <token>
 ---
 
 ### GET `/api/admin/service-providers/pending`
+
 Get all pending service provider requests.
 
 **Authentication:** Required (Admin)
 
 **Request Headers:**
+
 ```
 Authorization: Bearer <token>
 ```
@@ -1345,11 +1479,13 @@ Authorization: Bearer <token>
 ---
 
 ### GET `/api/admin/service-providers/reported`
+
 Get all reported service providers.
 
 **Authentication:** Required (Admin)
 
 **Request Headers:**
+
 ```
 Authorization: Bearer <token>
 ```
@@ -1361,6 +1497,7 @@ Authorization: Bearer <token>
 **Request Body:** None
 
 **Response:** Same format as above, includes `reports` array with report details:
+
 ```json
 {
   "success": true,
@@ -1389,11 +1526,13 @@ Authorization: Bearer <token>
 ---
 
 ### GET `/api/admin/service-providers/:id`
+
 Get detailed service provider information.
 
 **Authentication:** Required (Admin)
 
 **Request Headers:**
+
 ```
 Authorization: Bearer <token>
 ```
@@ -1412,11 +1551,13 @@ Authorization: Bearer <token>
 ---
 
 ### PUT `/api/admin/service-providers/:id/approve`
+
 Approve a pending service provider (changes status to ACTIVE).
 
 **Authentication:** Required (Admin)
 
 **Request Headers:**
+
 ```
 Authorization: Bearer <token>
 ```
@@ -1431,6 +1572,7 @@ Authorization: Bearer <token>
 **Request Body:** None
 
 **Response (200 OK):**
+
 ```json
 {
   "success": true,
@@ -1447,11 +1589,13 @@ Authorization: Bearer <token>
 ---
 
 ### PUT `/api/admin/service-providers/:id/reject`
+
 Reject a pending service provider (changes status to REJECTED).
 
 **Authentication:** Required (Admin)
 
 **Request Headers:**
+
 ```
 Authorization: Bearer <token>
 ```
@@ -1466,6 +1610,7 @@ Authorization: Bearer <token>
 **Request Body:** None
 
 **Response (200 OK):**
+
 ```json
 {
   "success": true,
@@ -1481,11 +1626,13 @@ Authorization: Bearer <token>
 ---
 
 ### PUT `/api/admin/service-providers/:id/status`
+
 Update service provider status (ACTIVE, INACTIVE, or REJECTED).
 
 **Authentication:** Required (Admin)
 
 **Request Headers:**
+
 ```
 Authorization: Bearer <token>
 Content-Type: application/json
@@ -1499,13 +1646,15 @@ Content-Type: application/json
 **Query Parameters:** None
 
 **Request Body:**
+
 ```json
 {
-  "status": "ACTIVE"  // Required: string, must be "ACTIVE", "INACTIVE", or "REJECTED"
+  "status": "ACTIVE" // Required: string, must be "ACTIVE", "INACTIVE", or "REJECTED"
 }
 ```
 
 **Response (200 OK):**
+
 ```json
 {
   "success": true,
@@ -1519,16 +1668,19 @@ Content-Type: application/json
 ```
 
 **Error Responses:**
+
 - `400 Bad Request`: Invalid status value
 
 ---
 
 ### GET `/api/admin/categories`
+
 Get all categories with their services and sub-services.
 
 **Authentication:** Required (Admin)
 
 **Request Headers:**
+
 ```
 Authorization: Bearer <token>
 ```
@@ -1540,6 +1692,7 @@ Authorization: Bearer <token>
 **Request Body:** None
 
 **Response (200 OK):**
+
 ```json
 {
   "success": true,
@@ -1572,11 +1725,13 @@ Authorization: Bearer <token>
 ---
 
 ### POST `/api/admin/categories`
+
 Create a new category.
 
 **Authentication:** Required (Admin)
 
 **Request Headers:**
+
 ```
 Authorization: Bearer <token>
 Content-Type: multipart/form-data
@@ -1593,6 +1748,7 @@ Content-Type: multipart/form-data
 | `icon` | File | No | Category icon image (JPEG, PNG, GIF, WebP, max 10MB) |
 
 **Response (201 Created):**
+
 ```json
 {
   "success": true,
@@ -1607,16 +1763,19 @@ Content-Type: multipart/form-data
 ```
 
 **Error Responses:**
+
 - `400 Bad Request`: Title already exists
 
 ---
 
 ### PUT `/api/admin/categories/:id`
+
 Update a category.
 
 **Authentication:** Required (Admin)
 
 **Request Headers:**
+
 ```
 Authorization: Bearer <token>
 Content-Type: multipart/form-data
@@ -1636,6 +1795,7 @@ Content-Type: multipart/form-data
 | `icon` | File | No | Category icon image |
 
 **Response (200 OK):**
+
 ```json
 {
   "success": true,
@@ -1647,11 +1807,13 @@ Content-Type: multipart/form-data
 ---
 
 ### DELETE `/api/admin/categories/:id`
+
 Delete a category (also deletes associated services and sub-services).
 
 **Authentication:** Required (Admin)
 
 **Request Headers:**
+
 ```
 Authorization: Bearer <token>
 ```
@@ -1666,6 +1828,7 @@ Authorization: Bearer <token>
 **Request Body:** None
 
 **Response (200 OK):**
+
 ```json
 {
   "success": true,
@@ -1676,11 +1839,13 @@ Authorization: Bearer <token>
 ---
 
 ### GET `/api/admin/services`
+
 Get all services with their categories and sub-services.
 
 **Authentication:** Required (Admin)
 
 **Request Headers:**
+
 ```
 Authorization: Bearer <token>
 ```
@@ -1695,6 +1860,7 @@ Authorization: Bearer <token>
 **Request Body:** None
 
 **Response (200 OK):**
+
 ```json
 {
   "success": true,
@@ -1719,11 +1885,13 @@ Authorization: Bearer <token>
 ---
 
 ### POST `/api/admin/services`
+
 Create a new service.
 
 **Authentication:** Required (Admin)
 
 **Request Headers:**
+
 ```
 Authorization: Bearer <token>
 Content-Type: multipart/form-data
@@ -1741,6 +1909,7 @@ Content-Type: multipart/form-data
 | `icon` | File | No | Service icon image (JPEG, PNG, GIF, WebP, max 10MB) |
 
 **Response (201 Created):**
+
 ```json
 {
   "success": true,
@@ -1760,11 +1929,13 @@ Content-Type: multipart/form-data
 ---
 
 ### PUT `/api/admin/services/:id`
+
 Update a service.
 
 **Authentication:** Required (Admin)
 
 **Request Headers:**
+
 ```
 Authorization: Bearer <token>
 Content-Type: multipart/form-data
@@ -1785,6 +1956,7 @@ Content-Type: multipart/form-data
 | `icon` | File | No | Service icon image |
 
 **Response (200 OK):**
+
 ```json
 {
   "success": true,
@@ -1796,11 +1968,13 @@ Content-Type: multipart/form-data
 ---
 
 ### DELETE `/api/admin/services/:id`
+
 Delete a service (also deletes associated sub-services).
 
 **Authentication:** Required (Admin)
 
 **Request Headers:**
+
 ```
 Authorization: Bearer <token>
 ```
@@ -1815,6 +1989,7 @@ Authorization: Bearer <token>
 **Request Body:** None
 
 **Response (200 OK):**
+
 ```json
 {
   "success": true,
@@ -1825,11 +2000,13 @@ Authorization: Bearer <token>
 ---
 
 ### GET `/api/admin/sub-services`
+
 Get all sub-services with their parent services.
 
 **Authentication:** Required (Admin)
 
 **Request Headers:**
+
 ```
 Authorization: Bearer <token>
 ```
@@ -1844,6 +2021,7 @@ Authorization: Bearer <token>
 **Request Body:** None
 
 **Response (200 OK):**
+
 ```json
 {
   "success": true,
@@ -1870,11 +2048,13 @@ Authorization: Bearer <token>
 ---
 
 ### POST `/api/admin/sub-services`
+
 Create a new sub-service.
 
 **Authentication:** Required (Admin)
 
 **Request Headers:**
+
 ```
 Authorization: Bearer <token>
 Content-Type: application/json
@@ -1885,14 +2065,16 @@ Content-Type: application/json
 **Query Parameters:** None
 
 **Request Body:**
+
 ```json
 {
-  "title": "Deep Cleaning",    // Required: string, must be unique within the service
-  "serviceId": "uuid"          // Required: string, UUID of parent service
+  "title": "Deep Cleaning", // Required: string, must be unique within the service
+  "serviceId": "uuid" // Required: string, UUID of parent service
 }
 ```
 
 **Response (201 Created):**
+
 ```json
 {
   "success": true,
@@ -1908,16 +2090,19 @@ Content-Type: application/json
 ```
 
 **Error Responses:**
+
 - `400 Bad Request`: Sub-service title already exists for this service
 
 ---
 
 ### PUT `/api/admin/sub-services/:id`
+
 Update a sub-service.
 
 **Authentication:** Required (Admin)
 
 **Request Headers:**
+
 ```
 Authorization: Bearer <token>
 Content-Type: application/json
@@ -1931,14 +2116,16 @@ Content-Type: application/json
 **Query Parameters:** None
 
 **Request Body:**
+
 ```json
 {
-  "title": "Deep Cleaning",    // Optional: string
-  "serviceId": "uuid"          // Optional: string, UUID of parent service
+  "title": "Deep Cleaning", // Optional: string
+  "serviceId": "uuid" // Optional: string, UUID of parent service
 }
 ```
 
 **Response (200 OK):**
+
 ```json
 {
   "success": true,
@@ -1950,11 +2137,13 @@ Content-Type: application/json
 ---
 
 ### DELETE `/api/admin/sub-services/:id`
+
 Delete a sub-service.
 
 **Authentication:** Required (Admin)
 
 **Request Headers:**
+
 ```
 Authorization: Bearer <token>
 ```
@@ -1969,6 +2158,7 @@ Authorization: Bearer <token>
 **Request Body:** None
 
 **Response (200 OK):**
+
 ```json
 {
   "success": true,
@@ -1979,11 +2169,13 @@ Authorization: Bearer <token>
 ---
 
 ### GET `/api/admin/privacy-policy`
+
 Get privacy policy PDF information.
 
 **Authentication:** Required (Admin)
 
 **Response (200 OK):**
+
 ```json
 {
   "success": true,
@@ -2000,11 +2192,13 @@ Get privacy policy PDF information.
 ---
 
 ### PUT `/api/admin/privacy-policy`
+
 Update privacy policy PDF (creates new version).
 
 **Authentication:** Required (Admin)
 
 **Request Headers:**
+
 ```
 Authorization: Bearer <token>
 Content-Type: multipart/form-data
@@ -2020,6 +2214,7 @@ Content-Type: multipart/form-data
 | `pdf` | File | **Yes** | PDF file (max 10MB) |
 
 **Response (200 OK):**
+
 ```json
 {
   "success": true,
@@ -2035,16 +2230,19 @@ Content-Type: multipart/form-data
 ```
 
 **Error Responses:**
+
 - `400 Bad Request`: PDF file is required
 
 ---
 
 ### GET `/api/admin/settings`
+
 Get app settings (support contact information).
 
 **Authentication:** Required (Admin)
 
 **Response (200 OK):**
+
 ```json
 {
   "success": true,
@@ -2062,11 +2260,13 @@ Get app settings (support contact information).
 ---
 
 ### PUT `/api/admin/settings`
+
 Update app settings (support contacts).
 
 **Authentication:** Required (Admin)
 
 **Request Headers:**
+
 ```
 Authorization: Bearer <token>
 Content-Type: application/json
@@ -2077,15 +2277,17 @@ Content-Type: application/json
 **Query Parameters:** None
 
 **Request Body:**
+
 ```json
 {
-  "supportEmail": "support@gfinder.com",    // Optional: string, valid email format
-  "supportPhone": "+1234567890",            // Optional: string
-  "supportWhatsapp": "+1234567890"          // Optional: string
+  "supportEmail": "support@gfinder.com", // Optional: string, valid email format
+  "supportPhone": "+1234567890", // Optional: string
+  "supportWhatsapp": "+1234567890" // Optional: string
 }
 ```
 
 **Response (200 OK):**
+
 ```json
 {
   "success": true,
@@ -2103,11 +2305,13 @@ Content-Type: application/json
 ---
 
 ### PUT `/api/admin/profile`
+
 Update admin profile.
 
 **Authentication:** Required (Admin)
 
 **Request Headers:**
+
 ```
 Authorization: Bearer <token>
 Content-Type: multipart/form-data
@@ -2128,6 +2332,7 @@ Content-Type: multipart/form-data
 | `city` | String | No | City name |
 
 **Response (200 OK):**
+
 ```json
 {
   "success": true,
@@ -2151,6 +2356,7 @@ Content-Type: multipart/form-data
 ## 🌐 Public APIs (`/api`)
 
 ### GET `/api/health`
+
 Health check endpoint (no authentication required).
 
 **Request Headers:** None
@@ -2162,6 +2368,7 @@ Health check endpoint (no authentication required).
 **Request Body:** None
 
 **Response (200 OK):**
+
 ```json
 {
   "status": "OK",
@@ -2176,9 +2383,11 @@ Health check endpoint (no authentication required).
 ---
 
 ### GET `/api/privacy-policy`
+
 Get privacy policy PDF information (public, no authentication required).
 
 **Response (200 OK):**
+
 ```json
 {
   "success": true,
@@ -2193,14 +2402,17 @@ Get privacy policy PDF information (public, no authentication required).
 ```
 
 **Error Responses:**
+
 - `404 Not Found`: Privacy policy not found
 
 ---
 
 ### GET `/api/help-center`
+
 Get help center contact information (public, no authentication required).
 
 **Response (200 OK):**
+
 ```json
 {
   "success": true,
@@ -2215,6 +2427,7 @@ Get help center contact information (public, no authentication required).
 ---
 
 ### GET `/api/categories`
+
 Get all categories with services and sub-services (public, no authentication required).
 
 **Request Headers:** None
@@ -2226,6 +2439,7 @@ Get all categories with services and sub-services (public, no authentication req
 **Request Body:** None
 
 **Response (200 OK):**
+
 ```json
 {
   "success": true,
@@ -2261,6 +2475,7 @@ Get all categories with services and sub-services (public, no authentication req
 All API responses follow a consistent format:
 
 ### Success Response
+
 ```json
 {
   "success": true,
@@ -2270,6 +2485,7 @@ All API responses follow a consistent format:
 ```
 
 ### Error Response
+
 ```json
 {
   "success": false,
@@ -2308,28 +2524,35 @@ All API responses follow a consistent format:
 ## 📤 File Upload Specifications
 
 ### Supported File Types
+
 - **Images**: JPEG, JPG, PNG, GIF, WebP
 - **PDFs**: PDF files only
 
 ### File Size Limits
+
 - Maximum file size: 10MB per file (configurable via `MAX_FILE_SIZE` in `.env`)
 - Portfolio images: Maximum 5 images total per service provider
 
 ### Upload Endpoints
+
 All file uploads use `multipart/form-data` content type:
+
 - Profile images: `profileImage` field (single file)
 - Portfolio images: `portfolioImages` field (multiple files, max 5)
 - Service/Category icons: `icon` field (single file)
 - PDF files: `pdf` field (single file)
 
 ### File Storage
+
 All files are stored in **AWS S3** and URLs are returned in responses. File URLs follow this format:
+
 ```
 https://bucket-name.s3.region.amazonaws.com/images/filename.jpg
 https://bucket-name.s3.region.amazonaws.com/pdfs/filename.pdf
 ```
 
 **Important Notes:**
+
 - Files are uploaded directly to S3, not stored locally
 - URLs are full S3 URLs (not relative paths)
 - Files are publicly accessible via the returned S3 URL
@@ -2342,7 +2565,7 @@ https://bucket-name.s3.region.amazonaws.com/pdfs/filename.pdf
 1. **Signup/Login**: Receive JWT token in response
 2. **Store Token**: Save token in client storage (localStorage, secure storage, etc.)
 3. **Include in Requests**: Add `Authorization: Bearer <token>` header to all authenticated requests
-4. **Token Expiry**: 
+4. **Token Expiry**:
    - Default: 7 days
    - With `rememberMe=true`: 30 days
 5. **Refresh**: Login again to get new token
@@ -2353,11 +2576,13 @@ https://bucket-name.s3.region.amazonaws.com/pdfs/filename.pdf
 ## 📊 Data Models & Enums
 
 ### User Roles
+
 - `CUSTOMER` - Regular customer account
 - `SERVICE_PROVIDER` - Service provider account
 - `ADMIN` - Administrator account
 
 ### Service Provider Status
+
 - `PENDING` - Awaiting admin approval (default for new signups)
 - `ACTIVE` - Approved and active (visible to customers)
 - `INACTIVE` - Blocked/deactivated by admin
@@ -2365,10 +2590,12 @@ https://bucket-name.s3.region.amazonaws.com/pdfs/filename.pdf
 - `REJECTED` - Rejected by admin
 
 ### Language
+
 - `ENGLISH`
 - `URDU`
 
 ### Availability Days (dayOfWeek)
+
 - `0` - Sunday
 - `1` - Monday
 - `2` - Tuesday
@@ -2378,6 +2605,7 @@ https://bucket-name.s3.region.amazonaws.com/pdfs/filename.pdf
 - `6` - Saturday
 
 ### Time Format
+
 - Format: `"HH:MM"` (24-hour format)
 - Example: `"09:00"` (9:00 AM), `"17:00"` (5:00 PM)
 
@@ -2386,6 +2614,7 @@ https://bucket-name.s3.region.amazonaws.com/pdfs/filename.pdf
 ## 🔍 Search Functionality
 
 Search is implemented across multiple endpoints and searches within:
+
 - Service provider names
 - Category titles
 - Service titles
@@ -2393,6 +2622,7 @@ Search is implemented across multiple endpoints and searches within:
 - Descriptions
 
 **Search behavior:**
+
 - Case-insensitive
 - Partial match (contains)
 - Searches across all specified fields simultaneously (OR logic)
@@ -2402,9 +2632,11 @@ Search is implemented across multiple endpoints and searches within:
 ## 📍 Location-Based Features
 
 ### Distance Calculation
+
 Uses Haversine formula to calculate distance between coordinates in kilometers.
 
 ### Radius Filtering
+
 - **Default radius**: 1 km
 - **Configurable**: Via `radius` query parameter (in kilometers)
 - **Requires**: User location (latitude/longitude) must be set
@@ -2412,12 +2644,15 @@ Uses Haversine formula to calculate distance between coordinates in kilometers.
 - **Sorting**: Results sorted by distance (closest first)
 
 ### Location Update
+
 Customers and service providers must update their location for:
+
 - Filtering service providers by radius
 - Showing distance to service providers
 - Home screen listings (default shows providers within 1000m if location set)
 
 **Location Format:**
+
 - Latitude: Number between -90 and 90
 - Longitude: Number between -180 and 180
 
@@ -2426,34 +2661,35 @@ Customers and service providers must update their location for:
 ## 📱 Integration Examples
 
 ### React/Next.js Example
+
 ```javascript
 // Login
 const login = async (email, password) => {
-  const response = await fetch('http://13.59.40.34/api/auth/login', {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ email, password })
+  const response = await fetch("http://13.59.40.34/api/auth/login", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ email, password }),
   });
   const data = await response.json();
   if (data.success) {
-    localStorage.setItem('token', data.token);
-    localStorage.setItem('user', JSON.stringify(data.user));
+    localStorage.setItem("token", data.token);
+    localStorage.setItem("user", JSON.stringify(data.user));
   }
   return data;
 };
 
 // Authenticated Request - Get Home Screen
-const getHomeScreen = async (radius = 1, search = '') => {
-  const token = localStorage.getItem('token');
+const getHomeScreen = async (radius = 1, search = "") => {
+  const token = localStorage.getItem("token");
   const queryParams = new URLSearchParams({
     radius: radius.toString(),
-    ...(search && { search })
+    ...(search && { search }),
   });
-  
+
   const response = await fetch(
     `http://13.59.40.34/api/customer/home?${queryParams}`,
     {
-      headers: { 'Authorization': `Bearer ${token}` }
+      headers: { Authorization: `Bearer ${token}` },
     }
   );
   return await response.json();
@@ -2461,31 +2697,31 @@ const getHomeScreen = async (radius = 1, search = '') => {
 
 // File Upload - Update Profile
 const updateProfile = async (imageFile, name) => {
-  const token = localStorage.getItem('token');
+  const token = localStorage.getItem("token");
   const formData = new FormData();
-  if (imageFile) formData.append('profileImage', imageFile);
-  if (name) formData.append('name', name);
-  
-  const response = await fetch('http://13.59.40.34/api/customer/profile', {
-    method: 'PUT',
-    headers: { 'Authorization': `Bearer ${token}` },
-    body: formData
+  if (imageFile) formData.append("profileImage", imageFile);
+  if (name) formData.append("name", name);
+
+  const response = await fetch("http://13.59.40.34/api/customer/profile", {
+    method: "PUT",
+    headers: { Authorization: `Bearer ${token}` },
+    body: formData,
   });
   return await response.json();
 };
 
 // Add Review
 const addReview = async (serviceProviderId, rating, comment) => {
-  const token = localStorage.getItem('token');
+  const token = localStorage.getItem("token");
   const response = await fetch(
     `http://13.59.40.34/api/customer/review/${serviceProviderId}`,
     {
-      method: 'POST',
+      method: "POST",
       headers: {
-        'Authorization': `Bearer ${token}`,
-        'Content-Type': 'application/json'
+        Authorization: `Bearer ${token}`,
+        "Content-Type": "application/json",
       },
-      body: JSON.stringify({ rating, comment })
+      body: JSON.stringify({ rating, comment }),
     }
   );
   return await response.json();
@@ -2493,6 +2729,7 @@ const addReview = async (serviceProviderId, rating, comment) => {
 ```
 
 ### cURL Examples
+
 ```bash
 # Login
 curl -X POST http://13.59.40.34/api/auth/login \
@@ -2525,6 +2762,7 @@ curl -X POST http://13.59.40.34/api/customer/review/SERVICE_PROVIDER_ID \
 ## 🔄 Rate Limiting
 
 Currently, rate limiting is not implemented. Consider implementing in production:
+
 - Login attempts: 5 per 15 minutes per IP
 - OTP requests: 10 per hour per email
 - API requests: 100 per minute per IP
@@ -2549,6 +2787,7 @@ Currently, rate limiting is not implemented. Consider implementing in production
 ## 🚀 Quick Reference
 
 ### Most Used Customer Endpoints
+
 1. `POST /api/auth/login` - Login
 2. `PUT /api/customer/location` - Set location (required for filtering)
 3. `GET /api/customer/home?radius=5&search=cleaning` - Get service providers
@@ -2557,6 +2796,7 @@ Currently, rate limiting is not implemented. Consider implementing in production
 6. `POST /api/customer/review/:id` - Add review
 
 ### Most Used Admin Endpoints
+
 1. `GET /api/admin/dashboard` - View statistics
 2. `GET /api/admin/service-providers/pending` - Review pending requests
 3. `PUT /api/admin/service-providers/:id/approve` - Approve provider
