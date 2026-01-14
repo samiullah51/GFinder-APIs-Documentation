@@ -536,17 +536,17 @@ Authorization: Bearer <token>
 **Query Parameters:**
 | Parameter | Type | Required | Description |
 |-----------|------|----------|-------------|
-| `categoryId` | String | No | Filter by category ID |
+| `serviceId` | String | No | Filter by service ID |
 | `subServiceId` | String | No | Filter by sub-service ID |
 | `radius` | Number | No | Filter radius in kilometers (default: 1) |
-| `search` | String | No | Search query (searches name, category, title, sub-category) |
+| `search` | String | No | Search query (searches name, service title, sub-service) |
 
 **Request Body:** None
 
 **Example Request:**
 
 ```
-GET /api/customer/home?radius=5&search=cleaning&categoryId=cat-123
+GET /api/customer/home?radius=5&search=cleaning&serviceId=service-123
 ```
 
 **Response (200 OK):**
@@ -602,10 +602,7 @@ GET /api/customer/home?radius=5&search=cleaning&categoryId=cat-123
             "service": {
               "id": "uuid",
               "title": "Home Cleaning",
-              "category": {
-                "id": "uuid",
-                "title": "Cleaning"
-              },
+              "icon": "https://bucket-name.s3.region.amazonaws.com/icons/cleaning.jpg",
               "subServices": [ ... ]
             },
             "subServiceIds": ["uuid1", "uuid2"]
@@ -794,7 +791,7 @@ Authorization: Bearer <token>
 **Query Parameters:**
 | Parameter | Type | Required | Description |
 |-----------|------|----------|-------------|
-| `search` | String | No | Search query (searches provider name, description, category, service) |
+| `search` | String | No | Search query (searches provider name, description, service) |
 
 **Request Body:** None
 
@@ -1071,7 +1068,7 @@ Authorization: Bearer <token>
 
 **Query Parameters:** Same as `/api/customer/home`
 
-- `categoryId` (String, optional)
+- `serviceId` (String, optional)
 - `subServiceId` (String, optional)
 - `radius` (Number, optional, default: 1)
 - `search` (String, optional)
@@ -1218,6 +1215,152 @@ Content-Type: multipart/form-data
 **Error Responses:**
 
 - `400 Bad Request`: More than 5 images attempted
+
+---
+
+### POST `/api/service-provider/portfolio/services`
+
+Add a service to your portfolio.
+
+**Authentication:** Required (Service Provider)
+
+**Request Headers:**
+
+```
+Authorization: Bearer <token>
+Content-Type: application/json
+```
+
+**Path Parameters:** None
+
+**Query Parameters:** None
+
+**Request Body:**
+
+```json
+{
+  "serviceId": "uuid",  // Required: Service ID
+  "subServiceIds": ["uuid1", "uuid2"]  // Optional: Array of sub-service IDs
+}
+```
+
+**Response (201 Created):**
+
+```json
+{
+  "success": true,
+  "message": "Service added to portfolio successfully",
+  "data": {
+    "id": "uuid",
+    "serviceProviderId": "uuid",
+    "serviceId": {
+      "id": "uuid",
+      "title": "Home Cleaning",
+      "icon": "https://bucket-name.s3.region.amazonaws.com/icons/cleaning.jpg",
+      "subServices": [ ... ]
+    },
+    "subServiceIds": ["uuid1", "uuid2"],
+    "createdAt": "2024-01-01T00:00:00.000Z",
+    "updatedAt": "2024-01-01T00:00:00.000Z"
+  }
+}
+```
+
+**Error Responses:**
+
+- `400 Bad Request`: Service ID is required, or service already exists in portfolio
+- `404 Not Found`: Service not found, or service provider profile not found
+
+---
+
+### PUT `/api/service-provider/portfolio/services/:id`
+
+Update sub-services for a service in your portfolio.
+
+**Authentication:** Required (Service Provider)
+
+**Request Headers:**
+
+```
+Authorization: Bearer <token>
+Content-Type: application/json
+```
+
+**Path Parameters:**
+| Parameter | Type | Required | Description |
+|-----------|------|----------|-------------|
+| `id` | String | Yes | Portfolio service ID (ServiceProviderService ID) |
+
+**Query Parameters:** None
+
+**Request Body:**
+
+```json
+{
+  "subServiceIds": ["uuid1", "uuid2"]  // Array of sub-service IDs
+}
+```
+
+**Response (200 OK):**
+
+```json
+{
+  "success": true,
+  "message": "Portfolio service updated successfully",
+  "data": {
+    "id": "uuid",
+    "serviceProviderId": "uuid",
+    "serviceId": {
+      "id": "uuid",
+      "title": "Home Cleaning",
+      "icon": "https://bucket-name.s3.region.amazonaws.com/icons/cleaning.jpg",
+      "subServices": [ ... ]
+    },
+    "subServiceIds": ["uuid1", "uuid2"],
+    "updatedAt": "2024-01-01T00:00:00.000Z"
+  }
+}
+```
+
+**Error Responses:**
+
+- `404 Not Found`: Service not found in portfolio, or service provider profile not found
+
+---
+
+### DELETE `/api/service-provider/portfolio/services/:id`
+
+Remove a service from your portfolio.
+
+**Authentication:** Required (Service Provider)
+
+**Request Headers:**
+
+```
+Authorization: Bearer <token>
+```
+
+**Path Parameters:**
+| Parameter | Type | Required | Description |
+|-----------|------|----------|-------------|
+| `id` | String | Yes | Portfolio service ID (ServiceProviderService ID) |
+
+**Query Parameters:** None
+
+**Request Body:** None
+
+**Response (200 OK):**
+
+```json
+{
+  "success": true,
+  "message": "Service removed from portfolio successfully"
+}
+```
+
+**Error Responses:**
+
+- `404 Not Found`: Service not found in portfolio, or service provider profile not found
 
 ---
 
@@ -1424,7 +1567,7 @@ Authorization: Bearer <token>
 | Parameter | Type | Required | Description |
 |-----------|------|----------|-------------|
 | `status` | String | No | Filter by status: PENDING, ACTIVE, INACTIVE, REPORTED, REJECTED |
-| `search` | String | No | Search query (searches name, email, description, category, service) |
+| `search` | String | No | Search query (searches name, email, description, service) |
 | `radius` | Number | No | Filter by radius in kilometers (requires latitude/longitude) |
 | `latitude` | Number | No | User latitude for radius filter |
 | `longitude` | Number | No | User longitude for radius filter |
@@ -1724,123 +1867,9 @@ Authorization: Bearer <token>
 
 ---
 
-### POST `/api/admin/categories`
-
-Create a new category.
-
-**Authentication:** Required (Admin)
-
-**Request Headers:**
-
-```
-Authorization: Bearer <token>
-Content-Type: multipart/form-data
-```
-
-**Path Parameters:** None
-
-**Query Parameters:** None
-
-**Request Body (Form Data):**
-| Field | Type | Required | Description |
-|-------|------|----------|-------------|
-| `title` | String | **Yes** | Category title (must be unique) |
-| `icon` | File | No | Category icon image (JPEG, PNG, GIF, WebP, max 10MB) |
-
-**Response (201 Created):**
-
-```json
-{
-  "success": true,
-  "message": "Category created successfully",
-  "data": {
-    "id": "uuid",
-    "title": "Cleaning",
-    "icon": "https://bucket-name.s3.region.amazonaws.com/images/icon.png",
-    "createdAt": "2024-01-01T00:00:00.000Z"
-  }
-}
-```
-
-**Error Responses:**
-
-- `400 Bad Request`: Title already exists
-
----
-
-### PUT `/api/admin/categories/:id`
-
-Update a category.
-
-**Authentication:** Required (Admin)
-
-**Request Headers:**
-
-```
-Authorization: Bearer <token>
-Content-Type: multipart/form-data
-```
-
-**Path Parameters:**
-| Parameter | Type | Required | Description |
-|-----------|------|----------|-------------|
-| `id` | String | **Yes** | Category ID (UUID) |
-
-**Query Parameters:** None
-
-**Request Body (Form Data):**
-| Field | Type | Required | Description |
-|-------|------|----------|-------------|
-| `title` | String | No | Category title (must be unique if changed) |
-| `icon` | File | No | Category icon image |
-
-**Response (200 OK):**
-
-```json
-{
-  "success": true,
-  "message": "Category updated successfully",
-  "data": { ... }
-}
-```
-
----
-
-### DELETE `/api/admin/categories/:id`
-
-Delete a category (also deletes associated services and sub-services).
-
-**Authentication:** Required (Admin)
-
-**Request Headers:**
-
-```
-Authorization: Bearer <token>
-```
-
-**Path Parameters:**
-| Parameter | Type | Required | Description |
-|-----------|------|----------|-------------|
-| `id` | String | **Yes** | Category ID (UUID) |
-
-**Query Parameters:** None
-
-**Request Body:** None
-
-**Response (200 OK):**
-
-```json
-{
-  "success": true,
-  "message": "Category deleted successfully"
-}
-```
-
----
-
 ### GET `/api/admin/services`
 
-Get all services with their categories and sub-services.
+Get all services with their sub-services.
 
 **Authentication:** Required (Admin)
 
@@ -1852,10 +1881,7 @@ Authorization: Bearer <token>
 
 **Path Parameters:** None
 
-**Query Parameters:**
-| Parameter | Type | Required | Description |
-|-----------|------|----------|-------------|
-| `categoryId` | String | No | Filter by category ID |
+**Query Parameters:** None
 
 **Request Body:** None
 
@@ -1868,12 +1894,7 @@ Authorization: Bearer <token>
     {
       "id": "uuid",
       "title": "Home Cleaning",
-      "icon": "/uploads/images/service-icon.png",
-      "categoryId": "uuid",
-      "category": {
-        "id": "uuid",
-        "title": "Cleaning"
-      },
+      "icon": "https://bucket-name.s3.region.amazonaws.com/icons/cleaning.jpg",
       "subServices": [ ... ],
       "createdAt": "2024-01-01T00:00:00.000Z",
       "updatedAt": "2024-01-01T00:00:00.000Z"
@@ -1904,8 +1925,7 @@ Content-Type: multipart/form-data
 **Request Body (Form Data):**
 | Field | Type | Required | Description |
 |-------|------|----------|-------------|
-| `title` | String | **Yes** | Service title |
-| `categoryId` | String | **Yes** | Category ID (UUID) |
+| `title` | String | **Yes** | Service title (must be unique) |
 | `icon` | File | No | Service icon image (JPEG, PNG, GIF, WebP, max 10MB) |
 
 **Response (201 Created):**
@@ -1917,9 +1937,7 @@ Content-Type: multipart/form-data
   "data": {
     "id": "uuid",
     "title": "Home Cleaning",
-    "icon": "/uploads/images/service-icon.png",
-    "categoryId": "uuid",
-    "category": { ... },
+    "icon": "https://bucket-name.s3.region.amazonaws.com/icons/cleaning.jpg",
     "subServices": [],
     "createdAt": "2024-01-01T00:00:00.000Z"
   }
@@ -1951,8 +1969,7 @@ Content-Type: multipart/form-data
 **Request Body (Form Data):**
 | Field | Type | Required | Description |
 |-------|------|----------|-------------|
-| `title` | String | No | Service title |
-| `categoryId` | String | No | Category ID (UUID) |
+| `title` | String | No | Service title (must be unique if changed) |
 | `icon` | File | No | Service icon image |
 
 **Response (200 OK):**
@@ -2033,10 +2050,7 @@ Authorization: Bearer <token>
       "service": {
         "id": "uuid",
         "title": "Home Cleaning",
-        "category": {
-          "id": "uuid",
-          "title": "Cleaning"
-        }
+        "icon": "https://bucket-name.s3.region.amazonaws.com/icons/cleaning.jpg"
       },
       "createdAt": "2024-01-01T00:00:00.000Z",
       "updatedAt": "2024-01-01T00:00:00.000Z"
@@ -2516,7 +2530,7 @@ All API responses follow a consistent format:
 - `"Insufficient permissions"` - User doesn't have required role (CUSTOMER, SERVICE_PROVIDER, ADMIN)
 - `"Invalid or expired OTP"` - OTP code incorrect or expired (10 minute expiry)
 - `"Service provider not found"` - Service provider ID doesn't exist
-- `"Category title already exists"` - Category title must be unique
+- `"Service title already exists"` - Service title must be unique
 - `"Sub-service with this title already exists for this service"` - Sub-service title must be unique within a service
 
 ---
@@ -2539,7 +2553,7 @@ All file uploads use `multipart/form-data` content type:
 
 - Profile images: `profileImage` field (single file)
 - Portfolio images: `portfolioImages` field (multiple files, max 5)
-- Service/Category icons: `icon` field (single file)
+- Service icons: `icon` field (single file)
 - PDF files: `pdf` field (single file)
 
 ### File Storage
@@ -2616,7 +2630,6 @@ https://bucket-name.s3.region.amazonaws.com/pdfs/filename.pdf
 Search is implemented across multiple endpoints and searches within:
 
 - Service provider names
-- Category titles
 - Service titles
 - Sub-service titles
 - Descriptions
@@ -2800,8 +2813,8 @@ Currently, rate limiting is not implemented. Consider implementing in production
 1. `GET /api/admin/dashboard` - View statistics
 2. `GET /api/admin/service-providers/pending` - Review pending requests
 3. `PUT /api/admin/service-providers/:id/approve` - Approve provider
-4. `GET /api/admin/categories` - Manage categories
-5. `POST /api/admin/categories` - Create category
+4. `GET /api/admin/services` - Manage services
+5. `POST /api/admin/services` - Create service
 
 ---
 
