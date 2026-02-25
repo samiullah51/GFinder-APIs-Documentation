@@ -54,9 +54,17 @@ Authorization: Bearer <your_jwt_token>
 
 ## 🔐 Authentication APIs (`/api/auth`)
 
+**Summary of behaviour:**  
+- **Login:** Email or phone + password; optional Remember Me (longer-lived token).  
+- **Signup (customer & service provider):** If `mobileNumber` is sent, a two-step OTP flow is used: first request sends OTP via SMS (Twilio); second request includes `otp` to complete registration.  
+- **Forgot / reset password:** OTP is sent via SMS (when Twilio is configured and the account has a phone) or email; user identifies by email or phone.  
+- **Location:** Not collected at signup; use `PUT /api/auth/me/location` after login when the user reaches the home screen.
+
+---
+
 ### POST `/api/auth/login`
 
-Login with email and password.
+Login with **email** or **phone number** and password. Works for both customers and service providers.
 
 **Authentication:** Not required (public endpoint)
 
@@ -68,13 +76,38 @@ Content-Type: application/json
 
 **Request Body (Required):**
 
+Either `email` or `phone`/`mobileNumber` must be provided.
+
+**Login with email:**
+
 ```json
 {
-  "email": "user@example.com", // Required: string, valid email format
-  "password": "password123", // Required: string
-  "rememberMe": true // Optional: boolean, defaults to false
+  "email": "user@example.com",
+  "password": "password123",
+  "rememberMe": true
 }
 ```
+
+**Login with phone number:**
+
+```json
+{
+  "phone": "+923001234567",
+  "password": "password123",
+  "rememberMe": false
+}
+```
+
+| Field        | Type    | Required | Description                                                                 |
+| ------------ | ------- | -------- | --------------------------------------------------------------------------- |
+| `email`      | String  | No*      | Email address (use when logging in with email)                              |
+| `phone`      | String  | No*      | Phone number (use when logging in with phone); also accepted as `mobileNumber` |
+| `password`   | String  | Yes      | Account password                                                             |
+| `rememberMe` | Boolean or String | No       | If `true` or `"true"`, token lasts 30 days; otherwise 7 days. Sent as boolean or string from forms. |
+
+\*Exactly one of `email` or `phone`/`mobileNumber` is required.
+
+The login response includes `expiresIn` (`"30d"` or `"7d"`) so the client can store the token accordingly (e.g. persistent storage when Remember Me is checked, session-only otherwise).
 
 **Response (200 OK):**
 
@@ -83,6 +116,7 @@ Content-Type: application/json
   "success": true,
   "message": "Login successful",
   "token": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...",
+  "expiresIn": "30d",
   "user": {
     "id": "uuid",
     "email": "user@example.com",
@@ -102,16 +136,38 @@ Content-Type: application/json
 }
 ```
 
+`expiresIn` is `"30d"` when Remember Me is checked, `"7d"` otherwise. Use it on the client to decide how to store the token (e.g. localStorage for 30d, sessionStorage for 7d).
+
 **Error Responses:**
 
-- `400 Bad Request`: Missing email or password
-- `401 Unauthorized`: Invalid email or password
+- `400 Bad Request`: Missing email/phone, missing password, or invalid phone format
+- `401 Unauthorized`: Invalid email/phone or password
+
+---
+
+### POST `/api/auth/send-signup-otp`
+
+Send OTP via **SMS (Twilio)** to the given phone for registration verification. You can either call this endpoint first, or call customer/service-provider signup with `mobileNumber` and no `otp` — both trigger sending the OTP.
+
+**Request Body:** `{ "phone": "+1234567890" }` (or `mobileNumber`). Phone in **E.164** format (e.g. `+923001234567`).
+
+**Response (200 OK):** `{ "success": true, "message": "OTP sent to your phone" }`
+
+**Error Responses:**  
+- `400` – Missing or invalid phone  
+- `503` – Twilio not configured  
+- `500` – Send failed. Response includes `message` (user-friendly) and optionally `errorCode` (Twilio code, e.g. 21608 for trial/unverified number)
 
 ---
 
 ### POST `/api/auth/customer/signup`
 
-Register a new customer account.
+Register a new customer account. **Two-step flow when using a phone number:**
+
+1. **Send OTP:** Call signup with `mobileNumber` and **no** `otp`. The server sends an OTP via SMS (Twilio) and returns `requireOtp: true`.
+2. **Complete registration:** Call signup again with the **same** body **plus** `otp` (the 6-digit code received by SMS). The server creates the account and returns the token and user.
+
+If you omit `mobileNumber`, registration completes in a single request (no OTP).
 
 **Authentication:** Not required (public endpoint)
 
@@ -123,19 +179,52 @@ Content-Type: application/json
 
 **Request Body:**
 
+Location (address, city, country) is not collected at registration. Set the user's location after login via `PUT /api/auth/me/location`.
+
+| Field | Type | Required | Description |
+|-------|------|----------|-------------|
+| `name` | String | Yes | Full name |
+| `email` | String | Yes | Email (unique), valid format |
+| `password` | String | Yes | Minimum 6 characters |
+| `mobileNumber` | String | No | Phone in E.164 (e.g. +923001234567). If provided, OTP flow is used. |
+| `otp` | String | No | 6-digit OTP. Required on second request when `mobileNumber` was sent in first request. |
+
+**Example – Step 1 (get OTP):**
+
 ```json
 {
-  "name": "John Doe", // Required: string
-  "email": "customer@example.com", // Required: string, valid email format, must be unique
-  "password": "password123", // Required: string, minimum 6 characters
-  "mobileNumber": "+1234567890", // Optional: string
-  "country": "USA", // Optional: string
-  "city": "New York", // Optional: string
-  "address": "123 Main Street, Apt 4B" // Optional: string
+  "name": "John Doe",
+  "email": "customer@example.com",
+  "password": "password123",
+  "mobileNumber": "+923001234567"
 }
 ```
 
-**Response (201 Created):**
+**Response (200 OK) – Step 1:**
+
+```json
+{
+  "success": true,
+  "message": "OTP sent to your phone. Submit the same signup request again with the \"otp\" field to complete registration.",
+  "requireOtp": true
+}
+```
+
+**Example – Step 2 (complete signup):**
+
+Same body as Step 1, plus the OTP received by SMS:
+
+```json
+{
+  "name": "John Doe",
+  "email": "customer@example.com",
+  "password": "password123",
+  "mobileNumber": "+923001234567",
+  "otp": "384729"
+}
+```
+
+**Response (201 Created) – Step 2:**
 
 ```json
 {
@@ -147,14 +236,8 @@ Content-Type: application/json
     "email": "customer@example.com",
     "name": "John Doe",
     "role": "CUSTOMER",
-    "mobileNumber": "+1234567890",
-    "country": "USA",
-    "city": "New York",
-    "address": "123 Main Street, Apt 4B",
-    "customerProfile": {
-      "id": "uuid",
-      "userId": "uuid"
-    },
+    "mobileNumber": "+923001234567",
+    "customerProfile": { "id": "uuid", "userId": "uuid" },
     "createdAt": "2024-01-01T00:00:00.000Z"
   }
 }
@@ -162,13 +245,16 @@ Content-Type: application/json
 
 **Error Responses:**
 
-- `400 Bad Request`: Missing required fields (name, email, password), password too short (minimum 6 characters), or email already exists
+- `400` – Missing required fields, password too short, email already exists, or invalid/expired OTP when `otp` provided  
+- `500` – OTP send failed (e.g. Twilio error). Response may include `errorCode` and user-friendly `message` (e.g. trial account must verify number)
 
 ---
 
 ### POST `/api/auth/service-provider/signup`
 
 Register a new service provider account (status: PENDING, requires admin approval).
+
+**OTP flow (same as customer signup):** If you send `mobileNumber`, use two steps: (1) Submit with `mobileNumber` and no `otp` → server sends OTP via SMS and returns `requireOtp: true`. (2) Submit again with the same form data plus `otp` (6-digit code) → account is created and token/user returned.
 
 **Authentication:** Not required (public endpoint)
 
@@ -182,15 +268,15 @@ Content-Type: multipart/form-data
 | Field | Type | Required | Description |
 |-------|------|----------|-------------|
 | `profileImage` | File | No | Profile image (JPEG, PNG, GIF, WebP) |
+| `portfolioImages` | Files | No | Portfolio images (JPEG, PNG, GIF, WebP, max 5 images) |
 | `name` | String | **Yes** | Service provider name |
 | `email` | String | **Yes** | Email address (must be unique) |
 | `password` | String | **Yes** | Password (minimum 6 characters) |
-| `mobileNumber` | String | No | Mobile phone number |
+| `mobileNumber` | String | No | Mobile phone (E.164). If provided, OTP flow applies — first request sends OTP, second request includes `otp`. |
+| `otp` | String | No | 6-digit OTP; required on second request when registering with `mobileNumber`. |
 | `whatsappNumber` | String | No | WhatsApp number with country code |
-| `country` | String | No | Country name |
-| `city` | String | No | City name |
-| `address` | String | No | Full address |
 | `description` | String | No | Service description |
+| `portfolioTitle` | String | No | Portfolio title/name |
 | `serviceIds` | JSON String/Array | No | Array of service IDs: `["uuid1", "uuid2"]` |
 | `subServiceIds` | JSON String/Array | No | Array of sub-service IDs: `["uuid1", "uuid2"]` |
 | `availability` | JSON String/Array | No | Availability array (see format below) |
@@ -215,130 +301,88 @@ Content-Type: multipart/form-data
   "success": true,
   "message": "Service provider account created successfully. Please wait for admin approval.",
   "token": "jwt_token_here",
-  "user": {
-    "id": "uuid",
-    "email": "provider@example.com",
-    "name": "Clean Pro",
-    "role": "SERVICE_PROVIDER",
-    "mobileNumber": "+1234567890",
-    "whatsappNumber": "+1234567890",
-    "country": "USA",
-    "city": "New York",
-    "address": "456 Business Ave, Suite 100",
-    "profileImage": "https://bucket-name.s3.region.amazonaws.com/images/profile.jpg",
-    "serviceProviderProfile": {
+    "user": {
       "id": "uuid",
-      "status": "PENDING",
-      "description": "Professional cleaning services",
-      "portfolioImages": [],
-      "services": [ ... ],
-      "availability": [ ... ]
-    },
-    "createdAt": "2024-01-01T00:00:00.000Z"
-  }
+      "email": "provider@example.com",
+      "name": "Clean Pro",
+      "role": "SERVICE_PROVIDER",
+      "mobileNumber": "+1234567890",
+      "whatsappNumber": "+1234567890",
+      "profileImage": "https://bucket-name.s3.region.amazonaws.com/images/profile.jpg",
+      "serviceProviderProfile": {
+        "id": "uuid",
+        "status": "PENDING",
+        "description": "Professional cleaning services",
+        "portfolioTitle": "My Cleaning Business",
+        "portfolioImages": [
+          "https://bucket-name.s3.region.amazonaws.com/images/portfolio1.jpg",
+          "https://bucket-name.s3.region.amazonaws.com/images/portfolio2.jpg"
+        ],
+        "services": [ ... ],
+        "availability": [ ... ]
+      },
+      "createdAt": "2024-01-01T00:00:00.000Z"
+    }
 }
 ```
 
 **Error Responses:**
 
-- `400 Bad Request`: Missing required fields (name, email, password), password too short (minimum 6 characters), email already exists, or invalid JSON format
+- `400 Bad Request`: Missing required fields, password too short, email already exists, invalid/expired OTP (when using phone), or invalid JSON format  
+- `500`: OTP send failed when using `mobileNumber` (response may include `errorCode` and user-friendly `message`)
 
 ---
 
 ### POST `/api/auth/forgot-password`
 
-Request password reset OTP (sent via email). Unlimited OTP resends allowed.
+Request password reset OTP. Send **email** or **phone**; OTP is sent via **SMS (Twilio)** when the account has a mobile number and Twilio is configured, otherwise via email.
 
 **Authentication:** Not required (public endpoint)
-
-**Request Headers:**
-
-```
-Content-Type: application/json
-```
 
 **Request Body:**
 
 ```json
-{
-  "email": "user@example.com" // Required: string, valid email format
-}
+{ "email": "user@example.com" }
 ```
-
-**Response (200 OK):**
-
+or
 ```json
-{
-  "success": true,
-  "message": "If the email exists, an OTP has been sent"
-}
+{ "phone": "+1234567890" }
 ```
+(or use `mobileNumber` instead of `phone`)
 
-_Note: Response message is generic for security (doesn't reveal if email exists)_
+**Response (200 OK):** `{ "success": true, "message": "If an account exists, an OTP has been sent" }`
 
-**Error Responses:**
-
-- `400 Bad Request`: Missing email
+**Error Responses:** `400` – Missing email and phone
 
 ---
 
 ### POST `/api/auth/resend-otp`
 
-Resend password reset OTP. Unlimited resends allowed.
+Resend password reset OTP. Use **email** or **phone**; OTP is sent via SMS when possible, else email.
 
-**Authentication:** Not required (public endpoint)
+**Request Body:** Same as forgot-password (`email` or `phone`/`mobileNumber`).
 
-**Request Headers:**
+**Response (200 OK):** `{ "success": true, "message": "If an account exists, an OTP has been sent" }`
 
-```
-Content-Type: application/json
-```
-
-**Request Body:**
-
-```json
-{
-  "email": "user@example.com" // Required: string, valid email format
-}
-```
-
-**Response (200 OK):**
-
-```json
-{
-  "success": true,
-  "message": "If the email exists, an OTP has been sent"
-}
-```
-
-**Error Responses:**
-
-- `400 Bad Request`: Missing email
+**Error Responses:** `400` – Missing email and phone
 
 ---
 
 ### POST `/api/auth/reset-password`
 
-Reset password using OTP code.
-
-**Authentication:** Not required (public endpoint)
-
-**Request Headers:**
-
-```
-Content-Type: application/json
-```
+Reset password using OTP code. Identify the user by **email** or **phone** (same as used for forgot-password).
 
 **Request Body:**
 
 ```json
 {
-  "email": "user@example.com", // Required: string, valid email format
-  "otp": "123456", // Required: string, 6-digit OTP code
-  "newPassword": "newPassword123", // Required: string
-  "confirmPassword": "newPassword123" // Required: string, must match newPassword
+  "email": "user@example.com",
+  "otp": "123456",
+  "newPassword": "newPassword123",
+  "confirmPassword": "newPassword123"
 }
 ```
+Or use `phone` (or `mobileNumber`) instead of `email` if the account was found by phone.
 
 **Response (200 OK):**
 
@@ -404,6 +448,62 @@ Authorization: Bearer <your_jwt_token>
 **Error Responses:**
 
 - `401 Unauthorized`: Missing or invalid token, user not found
+
+---
+
+### PUT `/api/auth/me/location`
+
+Set or update the current user's location. Call this when the user reaches the home screen after login so the system can use device geolocation (or reverse geocoding) to set location automatically. Works for both customers and service providers.
+
+**Authentication:** Required (Bearer token)
+
+**Request Headers:**
+
+```
+Content-Type: application/json
+Authorization: Bearer <your_jwt_token>
+```
+
+**Request Body:**
+
+```json
+{
+  "latitude": 40.7128,   // Required: number
+  "longitude": -74.006,  // Required: number
+  "address": "123 Main St",  // Optional: string (e.g. from reverse geocoding)
+  "city": "New York",       // Optional: string
+  "country": "USA"          // Optional: string
+}
+```
+
+| Field | Type | Required | Description |
+|-------|------|----------|-------------|
+| `latitude` | Number | **Yes** | Latitude from device geolocation |
+| `longitude` | Number | **Yes** | Longitude from device geolocation |
+| `address` | String | No | Full address (e.g. from reverse geocoding) |
+| `city` | String | No | City name |
+| `country` | String | No | Country name |
+
+**Response (200 OK):**
+
+```json
+{
+  "success": true,
+  "message": "Location updated successfully",
+  "user": {
+    "latitude": 40.7128,
+    "longitude": -74.006,
+    "address": "123 Main St",
+    "city": "New York",
+    "country": "USA"
+  }
+}
+```
+
+**Error Responses:**
+
+- `400 Bad Request`: Missing or invalid latitude/longitude
+- `401 Unauthorized`: Missing or invalid token
 
 ---
 
@@ -674,7 +774,10 @@ Authorization: Bearer <token>
   "data": {
     "id": "uuid",
     "description": "Professional cleaning services",
+    "portfolioTitle": "My Cleaning Business",
+    "portfolioName": "My Cleaning Business",
     "portfolioImages": ["/uploads/images/img1.jpg", "/uploads/images/img2.jpg"],
+    "rating": 4.5,
     "status": "ACTIVE",
     "user": {
       "id": "uuid",
@@ -1120,6 +1223,8 @@ Content-Type: application/json
 
 Get service provider's own portfolio details.
 
+> **📋 Portfolio Setup Guide:** For a complete guide on setting up your portfolio, including prerequisites and step-by-step instructions, see [PORTFOLIO_SETUP_FLOW.md](../PORTFOLIO_SETUP_FLOW.md)
+
 **Authentication:** Required (Service Provider)
 
 **Request Headers:**
@@ -1146,7 +1251,10 @@ Authorization: Bearer <token>
     "id": "uuid",
     "status": "ACTIVE",
     "description": "Professional cleaning services",
+    "portfolioTitle": "My Cleaning Business",
+    "portfolioName": "My Cleaning Business",
     "portfolioImages": ["/uploads/images/img1.jpg", "/uploads/images/img2.jpg"],
+    "rating": 4.5,
     "user": {
       "id": "uuid",
       "name": "Clean Pro",
@@ -1155,7 +1263,9 @@ Authorization: Bearer <token>
       "whatsappNumber": "+1234567890",
       "country": "USA",
       "city": "New York",
-      "profileImage": "/uploads/images/profile.jpg"
+      "profileImage": "/uploads/images/profile.jpg",
+      "latitude": 40.7128,
+      "longitude": -74.0060
     },
     "services": [ ... ],  // All services with categories and sub-services
     "availability": [ ... ],  // All availability slots
@@ -1239,8 +1349,8 @@ Content-Type: application/json
 
 ```json
 {
-  "serviceId": "uuid",  // Required: Service ID
-  "subServiceIds": ["uuid1", "uuid2"]  // Optional: Array of sub-service IDs
+  "serviceId": "uuid", // Required: Service ID
+  "subServiceIds": ["uuid1", "uuid2"] // Optional: Array of sub-service IDs
 }
 ```
 
@@ -1297,7 +1407,7 @@ Content-Type: application/json
 
 ```json
 {
-  "subServiceIds": ["uuid1", "uuid2"]  // Array of sub-service IDs
+  "subServiceIds": ["uuid1", "uuid2"] // Array of sub-service IDs
 }
 ```
 
@@ -2507,6 +2617,8 @@ All API responses follow a consistent format:
 }
 ```
 
+Some endpoints include extra fields when relevant (e.g. `errorCode` for Twilio/SMS errors, `requireOtp: true` when signup is waiting for OTP).
+
 ---
 
 ## ⚠️ HTTP Status Codes
@@ -2529,6 +2641,8 @@ All API responses follow a consistent format:
 - `"User not found"` - User ID doesn't exist
 - `"Insufficient permissions"` - User doesn't have required role (CUSTOMER, SERVICE_PROVIDER, ADMIN)
 - `"Invalid or expired OTP"` - OTP code incorrect or expired (10 minute expiry)
+- `"OTP sent to your phone. Submit the same signup request again with the \"otp\" field to complete registration."` - Signup step 1 success when using phone; include `otp` in next request
+- OTP send failure (500) - Response may include `errorCode` (e.g. Twilio 21608) and a user-friendly `message` (e.g. verify number for trial, invalid number format)
 - `"Service provider not found"` - Service provider ID doesn't exist
 - `"Service title already exists"` - Service title must be unique
 - `"Sub-service with this title already exists for this service"` - Sub-service title must be unique within a service
